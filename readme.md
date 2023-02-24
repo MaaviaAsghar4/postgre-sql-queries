@@ -68,3 +68,13 @@ select MAX(joindate) as latest from table_name
 select firstname, surname , joindate from table_name 
   where joindate = (select max(joindate) from table_name)
 ```
+
+#### Inner join (get the result by combining two tables based on the join-condition)
+Gets the starttime of bookings of David Farrell and join the two tables based on the id
+```sql
+select starttime from table1 bookings
+	inner join table2 members
+	on members.id = bookings.id
+		where members.firstname = 'David'
+		and members.surname = 'Farrell
+```
