@@ -78,3 +78,15 @@ select starttime from table1 bookings
 		where members.firstname = 'David'
 		and members.surname = 'Farrell
 ```
+
+Gets the booking start time and facilities name that contains ```Tennis Court``` and starttime = ```2012-09-21``` in ascending order
+```sql
+select bookings.starttime as start, facilities.name as name 
+	from table_bookings bookings
+	inner join table_facilities facilities 
+	on facilities.facid = bookings.facid
+		where facilities.name like '%Tennis Court%' and 
+		bookings.starttime >= '2012-09-21' and 
+		bookings.starttime < '2012-09-22'
+		order by start asc
+```
