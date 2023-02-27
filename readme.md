@@ -90,3 +90,60 @@ select bookings.starttime as start, facilities.name as name
 		bookings.starttime < '2012-09-22'
 		order by start asc
 ```
+
+Inner join on same table (members who have recommended other members)
+```sql
+select distinct mems1.firstname, mems1.surname from members mems1
+	inner join members mems2
+	on mems1.memid = mems2.recommendedby
+	order by mems1.surname asc
+```
+
+Inner join on same table (members who have recommended other members)
+```sql
+select distinct mems1.firstname, mems1.surname from members mems1
+	inner join members mems2
+	on mems1.memid = mems2.recommendedby
+	order by mems1.surname asc
+```
+
+Left outer join on the same table (to get the members who have recommended other members along with members who do not have any recommendations)
+```sql
+select mems1.firstname as memfname, mems1.surname as memsname,
+	mems2.firstname as recfname, mems2.surname as recsname  from members mems1
+	left outer join members mems2
+	on mems2.memid = mems1.recommendedby
+	order by memsname, memfname asc
+```
+
+#### Multiple inner joins
+List of members who have booked tennis court facility
+```sql
+select distinct (mem.firstname || ' ' || mem.surname) as member, fcl.name as facility from members mem
+	inner join bookings bookings
+	on mem.memid = bookings.memid
+		inner join facilities fcl 
+		on bookings.facid = fcl.facid
+			where fcl.name like '%Tennis Court%'
+			order by member, facility asc
+```
+
+List of members who have booked any facility on ```2012-09-14``` and their cost is more than $30
+```sql
+select (mem.firstname || ' ' || mem.surname) as member, 
+	fcl.name as facility,
+	case when (mem.memid = 0)
+		then bkn.slots * fcl.guestcost
+		else bkn.slots * fcl.membercost
+		end as cost
+from cd.members mem
+	inner join cd.bookings bkn
+	on mem.memid = bkn.memid
+		inner join cd.facilities fcl
+		on bkn.facid = fcl.facid
+			where bkn.starttime >= '2012-09-14' and bkn.starttime < '2012-09-15' and (
+				(mem.memid = 0 and bkn.slots * fcl.guestcost > 30) or
+			  	(mem.memid != 0 and bkn.slots * fcl.membercost > 30)
+			)
+			order by cost desc
+```
