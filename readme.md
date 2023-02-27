@@ -147,3 +147,35 @@ from cd.members mem
 			)
 			order by cost desc
 ```
+
+#### Sub queries
+List of members who have recommended other members
+```sql
+select distinct (mem.firstname || ' ' || mem.surname) as member, (
+  	select (rec.firstname || ' ' || rec.surname) from members rec 
+  		where mem.recommendedby = rec.memid
+  ) from members as mem
+  	order by member asc
+```
+
+List of members who have booked any facility on ```2012-09-14``` and their cost is more than $30
+```sql
+select member, facility, cost from (
+	select
+  		(mem.firstname || ' ' || mem.surname) as member,
+		fsc.name as facility,
+  		case when mem.memid = 0
+  			then bkn.slots * fsc.guestcost
+  			else bkn.slots * fsc.membercost
+  		end as cost
+  		from members mem
+		inner join bookings bkn
+  		on mem.memid = bkn.memid
+  			inner join facilities fsc
+  			on bkn.facid = fsc.facid
+  				where bkn.starttime >= '2012-09-14' and
+  					bkn.starttime < '2012-09-15'
+) as bookings
+	where cost > 30
+	order by cost desc
+```
