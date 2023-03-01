@@ -179,3 +179,67 @@ select member, facility, cost from (
 	where cost > 30
 	order by cost desc
 ```
+
+#### Insert queries
+Simple insert
+```sql
+insert into facilities
+    (facid, name, membercost, guestcost, initialoutlay, monthlymaintenance)
+    values(9, 'Spa', 20, 30, 100000, 800)
+```
+
+Multiple insert
+```sql
+insert into facilities
+    (facid, name, membercost, guestcost, initialoutlay, monthlymaintenance)
+    values
+        (9, 'Spa', 20, 30, 100000, 800),
+        (10, 'Squash Court 2', 3.5, 17.5, 5000, 80);
+```
+
+Insert calculated data
+```sql
+insert into facilities
+    (facid, name, membercost, guestcost, initialoutlay, monthlymaintenance)
+    select (select max(facid) from facilities)+1, 'Spa', 20, 30, 100000, 800;
+```
+
+#### Update Query
+Simple update
+```sql
+update facilities fcl
+    set initialoutlay=10000
+    where fcl.name like '%Tennis Court 2%'
+```
+
+Update multiple columns
+```sql
+update facilities fcl
+    set membercost=6, guestcost=30
+    where fcl.name like '%Tennis Court%'
+```
+
+Update calculated data
+```sql
+update facilities fcl1
+    set membercost=fcl2.membercost + (fcl1.membercost * 0.1),
+        guestcost=fcl2.guestcost + (fcl1.guestcost * 0.1)
+    from (select * from facilities where facid = 0) as fcl2
+    where fcl1.facid = 1
+```
+
+#### Delete Query
+Simple delete
+```sql
+delete from bookings
+```
+
+Delete conditionally
+```sql
+delete from members where memid = 37
+```
+
+Delete based on calculated data
+```sql
+delete from members where memid not in (select memid from bookings)
+```
