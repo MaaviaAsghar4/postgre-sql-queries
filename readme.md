@@ -136,10 +136,10 @@ select (mem.firstname || ' ' || mem.surname) as member,
 		then bkn.slots * fcl.guestcost
 		else bkn.slots * fcl.membercost
 		end as cost
-from cd.members mem
-	inner join cd.bookings bkn
+from members mem
+	inner join bookings bkn
 	on mem.memid = bkn.memid
-		inner join cd.facilities fcl
+		inner join facilities fcl
 		on bkn.facid = fcl.facid
 			where bkn.starttime >= '2012-09-14' and bkn.starttime < '2012-09-15' and (
 				(mem.memid = 0 and bkn.slots * fcl.guestcost > 30) or
@@ -242,4 +242,183 @@ delete from members where memid = 37
 Delete based on calculated data
 ```sql
 delete from members where memid not in (select memid from bookings)
+```
+
+#### Aggregation
+Count the number of facilities
+```sql
+select count(*) from facilities
+```
+
+Count the number of expensive facilities
+```sql
+select count(*) from facilities
+	where guestcost >= 10
+```
+
+Count the number of recommendations each member makes
+```sql
+select recommendedby, count(recommendedby) from members
+	where recommendedby is not null
+	group by recommendedby
+	order by recommendedby
+```
+
+List the total slots booked per facility
+```sql
+select facid, sum(slots) as "Total Slots" from bookings
+	group by facid
+	order by facid
+```
+
+List the total slots booked per facility in a given month
+```sql
+select facid, sum(slots) as "Total Slots" from bookings
+	where starttime >= '2012-09-01' and starttime < '2012-10-01'
+	group by facid 
+	order by "Total Slots"
+```
+
+List the total slots booked per facility per month
+```sql
+select facid, extract(MONTH from starttime) as "month", sum(slots) as "Total Slots" 
+	from bookings
+		where extract(YEAR from starttime) = '2012'
+		group by facid, month
+	order by facid, month
+```
+
+Find the count of members who have made at least one booking
+```sql
+select count(distinct memid) from bookings
+```
+
+List facilities with more than 1000 slots booked
+```sql
+select facid, sum(slots) as "Total Slots" from bookings 
+	group by facid
+	having sum(slots) > 1000
+	order by facid
+```
+
+Find the total revenue of each facility
+```sql
+select fcl.name as name, 
+	sum(bkn.slots * case when (bkn.memid = 0)
+			then fcl.guestcost
+			else fcl.membercost
+		end) as revenue
+	from bookings bkn
+		inner join facilities fcl
+		on bkn.facid = fcl.facid
+	group by fcl.name
+	order by revenue
+```
+
+Find facilities with a total revenue less than 1000
+```sql
+select name, revenue from (
+	select fcl.name as name, sum(bkn.slots *
+	  	case when (bkn.memid = 0)
+				then fcl.guestcost
+				else fcl.membercost
+			end
+	  ) as revenue from bookings bkn
+  		inner join facilities fcl
+  			on bkn.facid = fcl.facid
+  			group by fcl.name
+) as table_name
+	where revenue < 1000
+		order by revenue asc
+```
+
+Output the facility id that has the highest number of slots booked
+```sql
+select facid, sum(slots) as "Total slots" from bookings
+	group by facid
+		having sum(slots) = (
+		  select max(sum2.totalslots) from (
+			select sum(slots) as totalslots from bookings
+				group by facid
+		  ) as sum2
+		)
+```
+
+List the total slots booked per facility per month
+```sql
+select facid, extract(month from starttime) as month, sum(slots) from bookings
+	where extract(year from starttime) = '2012'
+		group by rollup (facid, month)
+		order by facid
+```
+
+List the total hours booked per named facility
+```sql
+select fcl.facid, fcl.name, trim(to_char((sum(bkn.slots)/2.0), '9999999999999999D99')) as "Total Hours" from facilities fcl
+	inner join bookings bkn
+	on bkn.facid = fcl.facid
+		group by fcl.facid, fcl.name
+		order by fcl.facid
+```
+
+List each member's first booking after September 1st 2012
+```sql
+select mem.surname, mem.firstname, mem.memid, min(bkn.starttime) from members mem
+	inner join bookings bkn
+	on bkn.memid = mem.memid
+		where bkn.starttime > '2012-09-01'
+		group by mem.memid, mem.surname, mem.firstname
+		order by memid
+```
+
+Produce a list of member names, with each row containing the total member count
+```sql
+select count(*) over(), firstname, surname from members
+	order by joindate
+```
+
+
+Produce a numbered list of members
+```sql
+select row_number() over(order by joindate), firstname, surname 
+	from members
+	order by joindate
+```
+
+Output the facility id that has the highest number of slots booked, again
+```sql
+select facid, total from (
+	select facid, sum(slots) total, rank() over (order by sum(slots) desc) rank
+  		from bookings
+  		group by facid
+) as ranked
+	where rank = 1 
+```
+
+Rank members by (rounded) hours used
+```sql
+select mem.firstname, mem.surname, 
+	((sum(bkn.slots)+10)/20)*10 as hours,
+	rank() over (order by ((sum(bkn.slots)+10)/20)*10 desc) as rank
+	from members mem
+		inner join bookings bkn
+			on mem.memid = bkn.memid
+		group by mem.memid
+order by rank, surname, firstname
+```
+
+Find the top three revenue generating facilities
+```sql
+select name, rank from (
+	select fcl.name as name, rank() over (order by sum(case
+				when memid = 0 then slots * fcl.guestcost
+				else slots * membercost
+			end) desc) as rank
+		from bookings bkn
+		inner join facilities fcl
+			on bkn.facid = fcl.facid
+		group by fcl.name
+	) as subq
+	where rank <= 3
+order by rank
 ```
