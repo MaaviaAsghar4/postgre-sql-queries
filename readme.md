@@ -422,3 +422,65 @@ select name, rank from (
 	where rank <= 3
 order by rank
 ```
+
+Classify facilities by value
+```sql
+select name, case when class=1 then 'high'
+		when class=2 then 'average'
+		else 'low'
+		end revenue
+	from (
+		select fcl.name as name, ntile(3) over (order by sum(case
+				when memid = 0 then slots * fcl.guestcost
+				else slots * membercost
+			end) desc) as class
+		from bookings bkn
+		inner join facilities fcl
+			on bkn.facid = fcl.facid
+		group by fcl.name
+	) as subq
+order by class, name
+```
+
+Calculate the payback time for each facility
+```sql
+select name, 
+	(initialoutlay / (monthlyrevenue - monthlymaintenance)) as months 
+from (
+  select fcl.name as name, 
+  	fcl.initialoutlay as initialoutlay,
+  	fcl.monthlymaintenance as monthlymaintenance,
+  	sum(case when memid = 0
+		then slots * fcl.guestcost
+		else slots * fcl.membercost
+		end
+	)/3 as monthlyrevenue
+  from bookings bkn
+  	inner join facilities fcl
+  	on bkn.facid = fcl.facid
+  group by fcl.facid
+) as subq
+order by name
+```
+
+Calculate a rolling average of total revenue
+```sql
+select dategen.date, 
+	(
+	  select sum(
+			case when memid = 0 then slots * guestcost
+			else slots * membercost
+			end
+		) as rev
+	  from bookings bkn 
+	  inner join facilities fcl
+	  	on bkn.facid = fcl.facid
+	  where bkn.starttime > dategen.date - interval '14 days'
+	  	and bkn.starttime < dategen.date + interval '1 day'
+	)/15 as revenue
+	from (
+		select cast(generate_series(timestamp '2012-08-01', 
+								   '2012-08-31', '1 day') as date) as date  
+	) as dategen
+order by dategen.date
+```
