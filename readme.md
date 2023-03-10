@@ -484,3 +484,79 @@ select dategen.date,
 	) as dategen
 order by dategen.date
 ```
+
+#### Date (Timestamp)
+Get a timestamp from a date
+```sql
+select timestamp '2012-08-31 01:00:00'
+```
+
+Subtract timestamps from each other
+```sql
+select timestamp '2012-08-31 01:00:00' - timestamp '2012-07-30 01:00:00' as interval
+```
+
+Generate a list of all the dates in October 2012
+```sql
+select generate_series(timestamp '2012-10-01', timestamp '2012-10-31', '1 day') 
+```
+
+Get the day of the month from a timestamp
+```sql
+select extract(day from timestamp '2012-08-31')
+```
+
+Work out the number of seconds between timestamps
+```sql
+select extract(epoch from(timestamp '2012-09-02 00:00:00' - '2012-08-31 01:00:00'))
+```
+
+Work out the number of days in each month of 2012
+```sql
+select extract(month from cal.month) as month,
+	(cal.month + interval '1 month') - cal.month as length
+	from (
+		  select generate_series(timestamp '2012-01-01', timestamp '2012-12-01', interval '1 month') as month
+	) cal
+order by month
+```
+
+Work out the number of days remaining in the month
+```sql
+select (date_trunc('month', ts.tests) + interval '1 month')
+	- date_trunc('day', ts.tests) as remaining
+from (select timestamp '2012-02-11 01:00:00' as tests) ts
+```
+
+Work out the end time of bookings
+```sql
+select starttime, starttime + slots*(interval '30 minutes') endtime
+	from bookings
+	order by endtime desc, starttime desc
+	limit 10
+```
+
+Return a count of bookings for each month
+```sql
+select date_trunc('month', starttime) as month, count(*)
+	from bookings
+	group by month
+	order by month
+```
+
+Work out the utilisation percentage for each facility by month
+```sql
+select name, month, 
+	round((100*slots)/
+		cast(
+			25*(cast((month + interval '1 month') as date)
+			- cast (month as date)) as numeric),1) as utilisation
+	from  (
+		select facs.name as name, date_trunc('month', starttime) as month, sum(slots) as slots
+			from bookings bks
+			inner join facilities facs
+				on bks.facid = facs.facid
+			group by facs.facid, month
+	) as inn
+order by name, month         
+```
