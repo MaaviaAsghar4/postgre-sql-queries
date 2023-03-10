@@ -1,5 +1,7 @@
 ## Basic queries for postgresql
 
+### All the queries below are taken from the following [site](https://pgexercises.com/)
+
 #### Retrieve everything from a table
 ```sql
 select * from table_name
