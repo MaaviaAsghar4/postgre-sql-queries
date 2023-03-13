@@ -562,3 +562,50 @@ select name, month,
 	) as inn
 order by name, month         
 ```
+
+
+#### String operations
+Format the names of members
+```sql
+select (surname || ', ' || firstname) as name from members        
+```
+
+Find facilities by a name prefix
+```sql
+select * from facilities
+	where name like 'Tennis%'     
+```
+
+Perform a case-insensitive search
+```sql
+select * from cd.facilities where name ilike 'tennis%'    
+```
+
+Find telephone numbers with parentheses
+```sql
+select memid, telephone from members
+	where telephone ~ '[()]'    
+```
+
+Pad zip codes with leading zeroes
+```sql
+select lpad(cast(zipcode as varchar(5)), 5, '0') from members 
+```
+
+Count the number of members whose surname starts with each letter of the alphabet
+```sql
+select substr(surname, 1,1) as letter, count(*) as count
+	from members
+		group by letter
+		order by letter
+```
+
+Clean up telephone numbers
+```sql
+select memid, translate(telephone, '-,() ', '') as telephone from members
+```
+```sql
+select memid, regexp_replace(telephone, '[^0-9]', '', 'g') as telephone
+    from members
+    order by memid;
+```
