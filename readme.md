@@ -578,7 +578,7 @@ select * from facilities
 
 Perform a case-insensitive search
 ```sql
-select * from cd.facilities where name ilike 'tennis%'    
+select * from facilities where name ilike 'tennis%'    
 ```
 
 Find telephone numbers with parentheses
